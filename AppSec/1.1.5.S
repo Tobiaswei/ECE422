@@ -6,9 +6,9 @@ shell:
 
 _main:
     
-    pushl %ebp
+ 
 
-    movl %esp,%ebp
+  
     
     movl $shell,%ebx
 
