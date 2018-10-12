@@ -4,6 +4,9 @@ from hashlib import md5
 
 ############################################################
 # XSS Defenses
+import re, os, random, string
+from bottle import FormsDict, HTTPError
+from hashlib import md5
 
 class XSSNone(object):
     """ this class just returns user_input """
@@ -26,6 +29,8 @@ class XSSEncodeAngles(object):
     @staticmethod
     def filter(user_input):
         #TODO: complete this filter definition
+        user_input = user_input.replace('<', '&lt')
+	user_input = user_input.replace('>', '&gt')
         return user_input	
 
 ############################################################
@@ -52,7 +57,9 @@ class CSRFToken(object):
     @staticmethod
     def init(request, response):
         token = request.get_cookie("csrf_token")
-
+        if not token:
+          token=''.join(random.sample(string.ascii_letters,16)).encode("hex")
+          response.set_cookie("csrf_token",token)
         #TODO: implement Token validation
 
         return token

