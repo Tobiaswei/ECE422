@@ -1,89 +1,81 @@
 import pbp
 from fractions import gcd
 from Crypto.PublicKey import RSA
-from Crypto.Util import number
 
-def producttree(X):
-    result = [X]
-    while len(result[-1]) > 1:
-        X = result[-1]
-        Y = []
-        L = len(X)
-        Y = [X[i*2]*X[i*2+1] for i in range(L/2)]
-        if L % 2 == 1:
-            Y.append(X[L-1])
-        result.append(Y)
-    return (result)
-def remaindersusingproducttree(n,T):
-       result = [n]
-       for t in reversed(T):
-         result = [result[(i//2)] % t[i] for i in range(len(t))]
-       return result
 
-def squaretree(T):
-        Y=[]
-        for j in range(len(T)):
-            Y.append([T[j][i]**2 for i in range(len(T[j]))])
-        return Y
-def find_gcd(remainder_list,moduli_list):
-    potential_pair=[]
-    if len(remainder_list)==len(moduli_list):
-        remainder_list=[remainder_list[i]/moduli_list[i] for i in range(len(moduli_list))]
-        for r,m in zip(remainder_list,moduli_list):
-             q=gcd(r,m)
-             if (q>1):
+# Function Source: https://en.wikibooks.org/wiki/Algorithm_Implementation/Mathematics/Extended_Euclidean_algorithm
+def modular_multiplicative_inverse(input_1, input_2):
+    b = input_1
+    a = input_2
+    x0, x1, y0, y1 = 1, 0, 0, 1
+    while a != 0:
+        q, b, a = b // a, a, b % a
+        x0, x1 = x1, x0 - q * x1
+        y0, y1 = y1, y0 - q * y1
+    return x0 % input_2
 
-                potential_pair.append((m,q))
 
-    else:
-        print("error, not pair")
-        exit(1)
+with open("./moduli.hex") as moduli_file, open("./3.2.4_ciphertext.enc.asc") as cipher_file,\
+ open("./sol_3.2.4.txt", 'w') as out_file:
 
-    return potential_pair
-# recostruct RSA by useing the potential list
-def find_private_key_list(potential_pair):
-    e=65537
-    private_keys=[]
-    for each in potential_pair:
+    moduli_list = []
+    for i in moduli_file.readlines():
+        moduli_list.append(int(i.strip(), 16))
 
-        p=each[0]/each[1]
-        q=each[1]
-        assert(number.isPrime(p))
-        assert(number.isPrime(q))
-        d = number.inverse(e, (p-1)*(q-1))
-        private_keys.append(RSA.construct((long(each[0]),long(e),long(d))))
+    print("Product Tree starts!")
+    product_tree = [moduli_list]
+    while len(product_tree[-1]) > 1:
+        product_tree_last = product_tree[-1]
+        product_tree.append([])
 
-    return private_keys
-def Decrypt_AES(keys,cipher_text):
-    for key in keys:
+        for i in range(len(product_tree_last) / 2):
+            product_tree[-1].append(product_tree_last[i * 2] * product_tree_last[i * 2 + 1])
+        if len(product_tree_last) % 2:
+            product_tree[-1].append(product_tree_last[len(product_tree_last) - 1])
+    product_all = product_tree[-1][0]
+    print("Product Tree finishes!\n")
+
+    print("Squared Product Tree starts!")
+    product_tree_squared = []
+    for i in range(len(product_tree)):
+        product_tree_squared.append([])
+        for j in range(len(product_tree[i])):
+            product_tree_squared[-1].append(product_tree[i][j]**2)
+    print("Squared Product Tree finishes!\n")
+
+    print("Remainder Tree starts!")
+    remainder_tree = [product_all]
+    for product_tree_squared_node in product_tree_squared[::-1]:
+        remainder_tree_copy = remainder_tree[:]
+        remainder_tree = []
+        for i in range(len(product_tree_squared_node)):
+            remainder_tree.append(remainder_tree_copy[i // 2] % product_tree_squared_node[i])
+    print("Remainder Tree finishes!")
+
+    print("GCD starts!")
+    moduli_candidates = []
+    for remainder, N in zip(remainder_tree, moduli_list):
+        gcd_value = gcd(remainder / N, N)
+        if gcd_value != 1 and gcd_value != N:
+            moduli_candidates.append((N, gcd_value))
+    print("GCD finishes!")
+
+    print("Search for Private Keys starts!")
+    private_keys = []
+    e = 65537
+    for i in range(len(moduli_candidates)):
+        N = moduli_candidates[i][0]
+        p = moduli_candidates[i][1]
+        q = N / p
+        d = modular_multiplicative_inverse(e, (p - 1) * (q - 1))
+        private_keys.append(RSA.construct((long(N), long(e), long(d))))
+    print("Search for Private Keys finishes!")
+
+    cipher_text = cipher_file.read()
+    for key in private_keys:
         try:
             plaintext = pbp.decrypt(key, cipher_text)
             print(plaintext)
-            return plaintext
-
+            out_file.write(plaintext)
         except ValueError:
-            a=0
-
-def main():
-     with open("moduli.hex") as moduli:
-         moduli_list=moduli.readlines()
-         moduli_list=[each.strip() for each in moduli_list]
-         moduli_list=[int(each,16) for each in moduli_list]
-
-     with open("3.2.4_ciphertext.enc.asc") as cipher:
-         cipher_text=cipher.read()
-
-     print("calculating product tree......")
-     pt=producttree(moduli_list)
-     print("calculating square product tree......")
-     pt_square=squaretree(pt)
-     print("calculating remainder tree......")
-     r_l=remaindersusingproducttree(pt[-1][0],pt_square)
-     print("calculating potential moudli list......")
-     potential_pair=find_gcd(r_l,moduli_list)
-     print("calculating private keys......")
-     private_keys=find_private_key_list(potential_pair)
-     print("Decrpt Message......")
-     plain_text=Decrypt_AES(private_keys,cipher_text)
-
-main()
+            pass
